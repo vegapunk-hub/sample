@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>CampusCart - Student Shopping</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script>tailwind.config = { darkMode: "class" };</script>
+<script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel">
+/* =====================================================
+   PRODUCT DATA  (a plain JavaScript array of objects)
+   ===================================================== */
+const unsplash = (id) => `https://images.unsplash.com/${id}?auto=format&fit=crop&w=800&q=70`;
+
+const PRODUCTS = [
+  { id: 1, name: "Wireless Headphones", category: "Electronics", price: 1799, originalPrice: 2999, rating: 4.5, badge: "Sale", stock: 12,
+    image: unsplash("photo-1505740420928-5e560c06d30e"), description: "Over-ear Bluetooth headphones with 30-hour battery. Great for online classes and late-night study." },
+  { id: 2, name: "Student Laptop 14\"", category: "Electronics", price: 38999, originalPrice: 45999, rating: 4.3, badge: "Popular", stock: 5,
+    image: unsplash("photo-1496181133206-80ce9b88a853"), description: "Lightweight 14-inch laptop, 8GB RAM, 512GB SSD. Perfect for coding assignments." },
+  { id: 3, name: "Programming in C – Textbook", category: "Books", price: 349, originalPrice: 450, rating: 4.6, badge: "Popular", stock: 40,
+    image: unsplash("photo-1544947950-fa07a98d237f"), description: "A beginner-friendly book that covers C programming with solved examples and exercises." },
+  { id: 4, name: "Ruled Notebook Pack (5)", category: "Stationery", price: 249, originalPrice: 299, rating: 4.2, badge: "New", stock: 80,
+    image: unsplash("photo-1531346878377-a5be20888e57"), description: "Pack of five 200-page notebooks with smooth paper and strong binding." },
+  { id: 5, name: "Gel Pen Set (20)", category: "Stationery", price: 199, originalPrice: 260, rating: 4.1, badge: "Sale", stock: 0,
+    image: unsplash("photo-1583485088034-697b5bc54ccd"), description: "Twenty smooth-writing gel pens in assorted colours for notes and diagrams." },
+  { id: 6, name: "Oversized Campus Hoodie", category: "Fashion", price: 999, originalPrice: 1599, rating: 4.4, badge: "Sale", stock: 18,
+    image: unsplash("photo-1556821840-3a63f95609a7"), description: "Soft fleece hoodie with a relaxed fit. Stay warm in the early-morning lectures." },
+  { id: 7, name: "Everyday Backpack 25L", category: "Accessories", price: 1299, originalPrice: 1999, rating: 4.5, badge: "New", stock: 22,
+    image: unsplash("photo-1553062407-98eeb64c6a62"), description: "Water-resistant backpack with a padded laptop sleeve and plenty of pockets." },
+  { id: 8, name: "Classic Analog Watch", category: "Accessories", price: 1499, originalPrice: 2200, rating: 4.0, badge: "", stock: 9,
+    image: unsplash("photo-1523275335684-37898b6baf30"), description: "A simple, stylish watch that goes with everything. Never be late for an exam again." },
+  { id: 9, name: "Scientific Calculator", category: "Electronics", price: 899, originalPrice: 1100, rating: 4.7, badge: "Popular", stock: 30,
+    image: unsplash("photo-1587145820266-a5951ee6f620"), description: "Exam-approved scientific calculator with 240 functions and a clear display." },
+];
+
+const CATEGORIES = ["All", "Electronics", "Books", "Stationery", "Fashion", "Accessories"];
+const COUPONS = { STUDENT10: 10, CAMPUS20: 20 }; // coupon code -> discount %
+
+// Small helper functions (not components)
+const rupees = (n) => "₹" + n.toLocaleString("en-IN");
+const discountPercent = (price, original) => Math.round(((original - price) / original) * 100);
+
+/* =====================================================
+   STAR RATING  - small reusable component
+   ===================================================== */
+function Stars({ rating }) {
+  return (
+    <span className="text-amber-500 text-sm" title={rating + " out of 5"}>
+      {"★".repeat(Math.round(rating))}{"☆".repeat(5 - Math.round(rating))}
+      <span className="ml-1 text-gray-500 dark:text-gray-400">{rating}</span>
+    </span>
+  );
+}
+
+/* =====================================================
+   NAVBAR - logo, search, links, counts, login, dark mode
+   Receives data and functions from App through PROPS.
+   ===================================================== */
+function Navbar({ search, setSearch, cartCount, wishlistCount, notifications, loggedIn, setLoggedIn, darkMode, setDarkMode, openPanel, clearNotifications }) {
+  // FORM onSubmit - stop the page from reloading
+  const handleSearchSubmit = (e) => {
+    e.preventDefault();
+    document.getElementById("products").scrollIntoView({ behavior: "smooth" });
+  };
+
+  return (
+    <header className="sticky top-0 z-30 bg-white/95 dark:bg-slate-900/95 backdrop-blur shadow">
+      <div className="max-w-7xl mx-auto px-4 py-3 flex flex-wrap items-center gap-3">
+        <a href="#top" className="text-2xl font-extrabold text-indigo-600">Campus<span className="text-orange-500">Cart</span></a>
+
+        {/* SEARCH - controlled input: value comes from state, onChange updates state */}
+        <form onSubmit={handleSearchSubmit} className="order-3 md:order-none w-full md:w-auto md:flex-1 md:max-w-md">
+          <input
+            value={search}
+            onChange={(e) => setSearch(e.target.value)}
+            placeholder="Search for books, laptops, pens..."
+            className="w-full rounded-full border border-gray-300 dark:border-slate-600 dark:bg-slate-800 dark:text-white px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-400"
+          />
+        </form>
+
+        <nav className="hidden lg:flex gap-5 text-sm font-medium text-gray-700 dark:text-gray-200">
+          <a href="#top" className="hover:text-indigo-600">Home</a>
+          <a href="#products" className="hover:text-indigo-600">Products</a>
+          <a href="#categories" className="hover:text-indigo-600">Categories</a>
+        </nav>
+
+        <div className="ml-auto flex items-center gap-1 sm:gap-2 text-sm">
+          <button onClick={() => setDarkMode(!darkMode)} className="px-2 py-1 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 dark:text-white">
+            {darkMode ? "☀️ Light" : "🌙 Dark"}
+          </button>
+          <button onClick={clearNotifications} className="px-2 py-1 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 dark:text-white" title="Click to clear">🔔 {notifications}</button>
+          <button onClick={() => openPanel("wishlist")} className="px-2 py-1 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 dark:text-white">❤️ {wishlistCount}</button>
+          <button onClick={() => openPanel("cart")} className="relative px-2 py-1 rounded-lg hover:bg-gray-100 dark:hover:bg-slate-700 dark:text-white">
+            🛒
+            {cartCount > 0 && <span className="absolute -top-1 -right-1 bg-orange-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">{cartCount}</span>}
+          </button>
+
+          {/* CONDITIONAL RENDERING with boolean state */}
+          {loggedIn ? (
+            <div className="flex items-center gap-2">
+              <span className="hidden sm:inline dark:text-white">👤 Asha (BCA)</span>
+              <button onClick={() => setLoggedIn(false)} className="bg-gray-200 dark:bg-slate-700 dark:text-white px-3 py-1 rounded-lg hover:bg-gray-300">Logout</button>
+            </div>
+          ) : (
+            <button onClick={() => setLoggedIn(true)} className="bg-indigo-600 text-white px-3 py-1 rounded-lg hover:bg-indigo-700">Login</button>
+          )}
+        </div>
+      </div>
+    </header>
+  );
+}
+
+/* =====================================================
+   HERO - big promotional banner (no state needed)
+   ===================================================== */
+function Hero() {
+  return (
+    <section id="top" className="relative h-72 sm:h-96 overflow-hidden">
+      <img src={unsplash("photo-1523050854058-8df90110c9f1")} alt="Students on campus" className="absolute inset-0 w-full h-full object-cover" />
+      <div className="absolute inset-0 bg-gradient-to-r from-indigo-900/90 to-indigo-900/20"></div>
+      <div className="relative max-w-7xl mx-auto px-4 h-full flex flex-col justify-center text-white">
+        <span className="bg-orange-500 w-fit px-3 py-1 rounded-full text-xs font-semibold mb-3">Student Deals</span>
+        <h1 className="text-3xl sm:text-5xl font-extrabold max-w-xl leading-tight">Everything for campus life, up to 40% off</h1>
+        <p className="mt-3 max-w-md text-indigo-100">Use STUDENT10 or CAMPUS20 at checkout. Free delivery above ₹999.</p>
+        <a href="#products" className="mt-5 w-fit bg-white text-indigo-700 font-semibold px-6 py-3 rounded-full hover:bg-orange-400 hover:text-white transition">Shop Now</a>
+      </div>
+    </section>
+  );
+}
+
+/* =====================================================
+   CATEGORY BUTTON + CATEGORY LIST
+   CategoryButton is the small piece, CategoryList repeats it with map().
+   ===================================================== */
+function CategoryButton({ name, active, onSelect }) {
+  return (
+    <button onClick={() => onSelect(name)}
+      className={"px-4 py-2 rounded-full text-sm font-medium border transition " +
+        (active ? "bg-indigo-600 text-white border-indigo-600" : "bg-white dark:bg-slate-800 dark:text-gray-200 dark:border-slate-600 text-gray-700 hover:border-indigo-400")}>
+      {name}
+    </button>
+  );
+}
+
+function CategoryList({ selected, onSelect }) {
+  return (
+    <section id="categories" className="max-w-7xl mx-auto px-4 pt-8">
+      <h2 className="text-xl font-bold mb-3 dark:text-white">Shop by category</h2>
+      <div className="flex gap-2 overflow-x-auto pb-2">
+        {CATEGORIES.map((c) => <CategoryButton key={c} name={c} active={selected === c} onSelect={onSelect} />)}
+      </div>
+    </section>
+  );
+}
+
+/* =====================================================
+   PRODUCT CARD - PROPS DESTRUCTURING in the function header
+   ===================================================== */
+function ProductCard({ name, price, originalPrice, image, rating, category, badge, stock, isWished, onWishlist, onAdd, onView }) {
+  const outOfStock = stock === 0;
+  return (
+    <div className="bg-white dark:bg-slate-800 rounded-2xl shadow hover:shadow-xl transition overflow-hidden flex flex-col">
+      <div className="relative">
+        <img src={image} alt={name} className="h-48 w-full object-cover"
+             onError={(e) => { e.target.src = "https://placehold.co/800x600?text=CampusCart"; }} />
+        {badge && <span className="absolute top-2 left-2 bg-orange-500 text-white text-xs font-semibold px-2 py-1 rounded">{badge}</span>}
+        <button onClick={onWishlist} className="absolute top-2 right-2 bg-white rounded-full h-9 w-9 shadow flex items-center justify-center text-lg hover:scale-110 transition">
+          {isWished ? "❤️" : "🤍"}
+        </button>
+      </div>
+      <div className="p-4 flex flex-col flex-1">
+        <span className="text-xs text-indigo-500 font-medium">{category}</span>
+        <h3 className="font-semibold text-gray-900 dark:text-white">{name}</h3>
+        <Stars rating={rating} />
+        <div className="mt-2 flex items-baseline gap-2">
+          <span className="text-lg font-bold dark:text-white">{rupees(price)}</span>
+          <span className="text-sm text-gray-400 line-through">{rupees(originalPrice)}</span>
+          <span className="text-sm text-green-600 font-semibold">{discountPercent(price, originalPrice)}% off</span>
+        </div>
+        <p className="text-xs mt-1 text-gray-500 dark:text-gray-400">Free delivery · Extra student discount</p>
+        <p className={"text-xs mt-1 font-medium " + (outOfStock ? "text-red-500" : stock < 10 ? "text-amber-600" : "text-green-600")}>
+          {outOfStock ? "Out of stock" : stock < 10 ? "Only " + stock + " left!" : "In stock"}
+        </p>
+        <div className="mt-auto pt-3 flex gap-2">
+          <button onClick={onView} className="flex-1 border border-indigo-600 text-indigo-600 rounded-lg py-2 text-sm hover:bg-indigo-50 dark:hover:bg-slate-700">View Details</button>
+          <button onClick={onAdd} disabled={outOfStock}
+            className="flex-1 bg-indigo-600 text-white rounded-lg py-2 text-sm hover:bg-indigo-700 disabled:bg-gray-300 disabled:cursor-not-allowed">Add to Cart</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* =====================================================
+   PRODUCT LIST - shows loading / empty states, else map() of cards
+   ===================================================== */
+function ProductList({ products, loading, wishlist, toggleWishlist, addToCart, setSelectedProduct }) {
+  if (loading) return <p className="text-center py-20 text-gray-500 dark:text-gray-300 animate-pulse">Loading products...</p>;
+  if (products.length === 0) return <p className="text-center py-20 text-gray-500 dark:text-gray-300">No products found. Try another search or category.</p>;
+
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+      {products.map((product) => (
+        <ProductCard
+          key={product.id}
+          name={product.name}
+          price={product.price}
+          originalPrice={product.originalPrice}
+          image={product.image}
+          rating={product.rating}
+          category={product.category}
+          badge={product.badge}
+          stock={product.stock}
+          isWished={wishlist.some((w) => w.id === product.id)}
+          onWishlist={() => toggleWishlist(product)}
+          onAdd={() => addToCart(product)}
+          onView={() => setSelectedProduct(product)}
+        />
+      ))}
+    </div>
+  );
+}
+
+/* =====================================================
+   PRODUCT DETAILS MODAL - shown only when a product is selected
+   ===================================================== */
+function ProductDetails({ product, onClose, onAdd }) {
+  return (
+    <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4" onClick={onClose}>
+      <div className="bg-white dark:bg-slate-800 dark:text-white rounded-2xl max-w-3xl w-full max-h-[90vh] overflow-y-auto grid md:grid-cols-2" onClick={(e) => e.stopPropagation()}>
+        <img src={product.image} alt={product.name} className="w-full h-64 md:h-full object-cover" />
+        <div className="p-6">
+          <h2 className="text-2xl font-bold">{product.name}</h2>
+          <Stars rating={product.rating} />
+          <p className="mt-3 text-gray-600 dark:text-gray-300">{product.description}</p>
+          <div className="mt-3 flex items-baseline gap-2">
+            <span className="text-2xl font-bold">{rupees(product.price)}</span>
+            <span className="text-gray-400 line-through">{rupees(product.originalPrice)}</span>
+            <span className="text-green-600 font-semibold">{discountPercent(product.price, product.originalPrice)}% off</span>
+          </div>
+          <p className="mt-2 text-sm">Stock: {product.stock > 0 ? product.stock + " available" : "Out of stock"}</p>
+          <div className="mt-5 flex gap-2">
+            <button onClick={() => onAdd(product)} disabled={product.stock === 0} className="flex-1 bg-indigo-600 text-white rounded-lg py-2 hover:bg-indigo-700 disabled:bg-gray-300">Add to Cart</button>
+            <button onClick={onClose} className="flex-1 border rounded-lg py-2 hover:bg-gray-100 dark:hover:bg-slate-700">Close</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* =====================================================
+   COUPON - form with its own small piece of state
+   ===================================================== */
+function Coupon({ appliedCoupon, onApply }) {
+  const [code, setCode] = React.useState("");       // string state (what the user typed)
+  const [message, setMessage] = React.useState(""); // string state (feedback)
+  const [ok, setOk] = React.useState(false);        // boolean state (success or error)
+
+  const handleSubmit = (e) => {
+    e.preventDefault();                              // FORM onSubmit
+    const upper = code.trim().toUpperCase();
+    if (COUPONS[upper]) {
+      onApply(upper); setOk(true); setMessage(upper + " applied: " + COUPONS[upper] + "% off");
+    } else {
+      onApply(""); setOk(false); setMessage("Invalid coupon code");
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="mt-4">
+      <div className="flex gap-2">
+        <input value={code} onChange={(e) => setCode(e.target.value)} placeholder="Coupon (STUDENT10)"
+          className="flex-1 border rounded-lg px-3 py-2 text-sm dark:bg-slate-700 dark:border-slate-600" />
+        <button type="submit" className="bg-orange-500 text-white px-4 rounded-lg text-sm hover:bg-orange-600">Apply</button>
+      </div>
+      {message && <p className={"text-sm mt-1 " + (ok ? "text-green-600" : "text-red-500")}>{message}</p>}
+    </form>
+  );
+}
+
+/* =====================================================
+   CART ITEM + CART
+   ===================================================== */
+function CartItem({ item, onIncrease, onDecrease, onRemove }) {
+  return (
+    <div className="flex gap-3 py-3 border-b dark:border-slate-700">
+      <img src={item.image} alt={item.name} className="h-16 w-16 rounded-lg object-cover" />
+      <div className="flex-1">
+        <p className="font-medium text-sm">{item.name}</p>
+        <p className="text-sm text-gray-500 dark:text-gray-400">{rupees(item.price)}</p>
+        <div className="mt-1 flex items-center gap-2">
+          <button onClick={() => onDecrease(item.id)} className="h-7 w-7 rounded border hover:bg-gray-100 dark:hover:bg-slate-700">−</button>
+          <span className="w-6 text-center">{item.quantity}</span>
+          <button onClick={() => onIncrease(item.id)} className="h-7 w-7 rounded border hover:bg-gray-100 dark:hover:bg-slate-700">+</button>
+          <button onClick={() => onRemove(item.id)} className="ml-auto text-red-500 text-sm hover:underline">Remove</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function Cart({ cart, onIncrease, onDecrease, onRemove, appliedCoupon, setAppliedCoupon, onClose }) {
+  // CART CALCULATIONS with reduce()
+  const totalQuantity = cart.reduce((sum, item) => sum + item.quantity, 0);
+  const subtotal = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const discountPercentage = appliedCoupon ? COUPONS[appliedCoupon] : 0;
+  const discount = Math.round((subtotal * discountPercentage) / 100);
+  const delivery = subtotal === 0 || subtotal >= 999 ? 0 : 49;
+  const grandTotal = subtotal - discount + delivery;
+
+  return (
+    <PanelShell title={"Your Cart (" + totalQuantity + ")"} onClose={onClose}>
+      {cart.length === 0 ? (
+        <p className="text-center text-gray-500 dark:text-gray-300 py-16">Your cart is empty.</p>
+      ) : (
+        <>
+          {cart.map((item) => (
+            <CartItem key={item.id} item={item} onIncrease={onIncrease} onDecrease={onDecrease} onRemove={onRemove} />
+          ))}
+          <Coupon appliedCoupon={appliedCoupon} onApply={setAppliedCoupon} />
+          <div className="mt-4 space-y-1 text-sm">
+            <div className="flex justify-between"><span>Subtotal</span><span>{rupees(subtotal)}</span></div>
+            <div className="flex justify-between text-green-600"><span>Discount ({discountPercentage}%)</span><span>− {rupees(discount)}</span></div>
+            <div className="flex justify-between"><span>Delivery</span><span>{delivery === 0 ? "FREE" : rupees(delivery)}</span></div>
+            <div className="flex justify-between font-bold text-lg border-t pt-2 dark:border-slate-700"><span>Grand Total</span><span>{rupees(grandTotal)}</span></div>
+          </div>
+          <button className="mt-4 w-full bg-indigo-600 text-white py-3 rounded-lg hover:bg-indigo-700">Checkout (demo)</button>
+        </>
+      )}
+    </PanelShell>
+  );
+}
+
+/* =====================================================
+   WISHLIST
+   ===================================================== */
+function Wishlist({ wishlist, onRemove, onMoveToCart, onClose }) {
+  return (
+    <PanelShell title={"Wishlist (" + wishlist.length + ")"} onClose={onClose}>
+      {wishlist.length === 0 ? (
+        <p className="text-center text-gray-500 dark:text-gray-300 py-16">Wishlist is empty.</p>
+      ) : (
+        wishlist.map((p) => (
+          <div key={p.id} className="flex gap-3 py-3 border-b dark:border-slate-700">
+            <img src={p.image} alt={p.name} className="h-16 w-16 rounded-lg object-cover" />
+            <div className="flex-1">
+              <p className="font-medium text-sm">{p.name}</p>
+              <p className="text-sm text-gray-500 dark:text-gray-400">{rupees(p.price)}</p>
+              <div className="mt-1 flex gap-3 text-sm">
+                <button onClick={() => onMoveToCart(p)} className="text-indigo-600 hover:underline">Add to cart</button>
+                <button onClick={() => onRemove(p)} className="text-red-500 hover:underline">Remove</button>
+              </div>
+            </div>
+          </div>
+        ))
+      )}
+    </PanelShell>
+  );
+}
+
+// Shared slide-in panel used by both Cart and Wishlist (children prop = whatever is placed inside)
+function PanelShell({ title, onClose, children }) {
+  return (
+    <div className="fixed inset-0 z-50 flex justify-end bg-black/50" onClick={onClose}>
+      <aside className="bg-white dark:bg-slate-800 dark:text-white w-full max-w-md h-full overflow-y-auto p-5" onClick={(e) => e.stopPropagation()}>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-xl font-bold">{title}</h2>
+          <button onClick={onClose} className="text-2xl leading-none hover:text-red-500">×</button>
+        </div>
+        {children}
+      </aside>
+    </div>
+  );
+}
+
+/* =====================================================
+   FOOTER
+   ===================================================== */
+function Footer() {
+  return (
+    <footer className="mt-16 bg-slate-900 text-slate-300">
+      <div className="max-w-7xl mx-auto px-4 py-10 grid gap-6 sm:grid-cols-3 text-sm">
+        <div><h4 className="text-white font-bold text-lg">CampusCart</h4><p className="mt-2">Made for students. A React teaching demo.</p></div>
+        <div><h4 className="text-white font-semibold">Help</h4><p className="mt-2">Free delivery above ₹999 · 7-day returns · Student ID discounts</p></div>
+        <div><h4 className="text-white font-semibold">Coupons</h4><p className="mt-2">STUDENT10 (10% off) · CAMPUS20 (20% off)</p></div>
+      </div>
+      <p className="text-center text-xs py-3 border-t border-slate-700">© 2026 CampusCart · Demo only, no real orders</p>
+    </footer>
+  );
+}
+
+/* =====================================================
+   APP - the parent. ALL the main useState variables live here
+   and are passed down to children as props.
+   ===================================================== */
+function App() {
+  // USESTATE ------------------------------------------------
+  const [search, setSearch] = React.useState("");              // string
+  const [category, setCategory] = React.useState("All");       // string
+  const [sortBy, setSortBy] = React.useState("default");       // string
+  const [cart, setCart] = React.useState([]);                  // array of objects
+  const [wishlist, setWishlist] = React.useState([]);          // array of objects
+  const [selectedProduct, setSelectedProduct] = React.useState(null); // object or null
+  const [panel, setPanel] = React.useState("none");            // "none" | "cart" | "wishlist"
+  const [notifications, setNotifications] = React.useState(0); // number
+  const [loggedIn, setLoggedIn] = React.useState(false);       // boolean
+  const [darkMode, setDarkMode] = React.useState(false);       // boolean
+  const [loading, setLoading] = React.useState(false);         // boolean
+  const [toast, setToast] = React.useState("");                // string (small message)
+  const [appliedCoupon, setAppliedCoupon] = React.useState(""); // string
+
+  // TOAST - show a message for 2 seconds
+  const showToast = (text) => {
+    setToast(text);
+    setTimeout(() => setToast(""), 2000);
+  };
+
+  // ADD TO CART - find() checks if it already exists
+  const addToCart = (product) => {
+    const existing = cart.find((item) => item.id === product.id);
+    if (existing) {
+      setCart(cart.map((item) => item.id === product.id ? { ...item, quantity: item.quantity + 1 } : item));
+    } else {
+      setCart([...cart, { ...product, quantity: 1 }]);
+    }
+    setNotifications(notifications + 1);
+    showToast("Added to cart ✔");
+  };
+
+  // QUANTITY - never below 1
+  const increaseQty = (id) => setCart(cart.map((i) => i.id === id ? { ...i, quantity: i.quantity + 1 } : i));
+  const decreaseQty = (id) => setCart(cart.map((i) => i.id === id ? { ...i, quantity: Math.max(1, i.quantity - 1) } : i));
+  const removeFromCart = (id) => setCart(cart.filter((i) => i.id !== id));
+
+  // WISHLIST - add if missing, remove if present
+  const toggleWishlist = (product) => {
+    const exists = wishlist.some((w) => w.id === product.id);
+    setWishlist(exists ? wishlist.filter((w) => w.id !== product.id) : [...wishlist, product]);
+  };
+
+  // FAKE LOADING - shows "Loading products..." for one second
+  const refreshDeals = () => {
+    setLoading(true);
+    setTimeout(() => setLoading(false), 1000);
+  };
+
+  // SEARCH + CATEGORY FILTER + SORT (done on every render, no extra state needed)
+  let visibleProducts = PRODUCTS
+    .filter((p) => p.name.toLowerCase().includes(search.toLowerCase()))
+    .filter((p) => category === "All" || p.category === category);
+
+  if (sortBy === "low") visibleProducts = [...visibleProducts].sort((a, b) => a.price - b.price);
+  if (sortBy === "high") visibleProducts = [...visibleProducts].sort((a, b) => b.price - a.price);
+
+  const cartCount = cart.reduce((sum, item) => sum + item.quantity, 0);
+
+  return (
+    <div className={darkMode ? "dark" : ""}>
+      <div className="min-h-screen bg-gray-50 dark:bg-slate-900 text-gray-900 transition-colors">
+        <Navbar
+          search={search} setSearch={setSearch}
+          cartCount={cartCount} wishlistCount={wishlist.length} notifications={notifications}
+          loggedIn={loggedIn} setLoggedIn={setLoggedIn}
+          darkMode={darkMode} setDarkMode={setDarkMode}
+          openPanel={setPanel} clearNotifications={() => setNotifications(0)}
+        />
+        <Hero />
+        <CategoryList selected={category} onSelect={setCategory} />
+
+        <main id="products" className="max-w-7xl mx-auto px-4 py-8">
+          <div className="flex flex-wrap items-center justify-between gap-3 mb-5">
+            <h2 className="text-xl font-bold dark:text-white">
+              {category === "All" ? "All products" : category} <span className="text-sm font-normal text-gray-500">({visibleProducts.length})</span>
+            </h2>
+            <div className="flex gap-2">
+              <button onClick={refreshDeals} className="border rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 dark:text-white dark:border-slate-600 hover:bg-gray-100">Refresh deals</button>
+              <select value={sortBy} onChange={(e) => setSortBy(e.target.value)}
+                className="border rounded-lg px-3 py-2 text-sm bg-white dark:bg-slate-800 dark:text-white dark:border-slate-600">
+                <option value="default">Default</option>
+                <option value="low">Price: Low to High</option>
+                <option value="high">Price: High to Low</option>
+              </select>
+            </div>
+          </div>
+          <ProductList products={visibleProducts} loading={loading} wishlist={wishlist}
+            toggleWishlist={toggleWishlist} addToCart={addToCart} setSelectedProduct={setSelectedProduct} />
+        </main>
+
+        <Footer />
+
+        {/* CONDITIONAL RENDERING of modal / panels */}
+        {selectedProduct && (
+          <ProductDetails product={selectedProduct} onClose={() => setSelectedProduct(null)} onAdd={addToCart} />
+        )}
+        {panel === "cart" && (
+          <Cart cart={cart} onIncrease={increaseQty} onDecrease={decreaseQty} onRemove={removeFromCart}
+            appliedCoupon={appliedCoupon} setAppliedCoupon={setAppliedCoupon} onClose={() => setPanel("none")} />
+        )}
+        {panel === "wishlist" && (
+          <Wishlist wishlist={wishlist} onRemove={toggleWishlist}
+            onMoveToCart={(p) => { addToCart(p); toggleWishlist(p); }} onClose={() => setPanel("none")} />
+        )}
+        {toast && <div className="fixed bottom-5 left-1/2 -translate-x-1/2 z-[60] bg-green-600 text-white px-5 py-2 rounded-full shadow-lg">{toast}</div>}
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App />);
+</script>
+</body>
+</html>
