@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>React - useState and Conditional Rendering</title>
+
+    <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+</head>
+
+<body>
+
+    <div id="root"></div>
+
+    <script type="text/babel">
+
+        function Status() {
+
+            // State
+            const [loggedIn, setLoggedIn] = React.useState(false);
+
+
+            function handleLogin() {
+                setLoggedIn(true);
+            }
+
+
+            function handleLogout() {
+                setLoggedIn(false);
+            }
+
+
+            return (
+                <div>
+
+                    {loggedIn
+                        ? <p>👋 Welcome back!</p>
+                        : <p>🔒 Please log in</p>
+                    }
+
+
+                    {loggedIn
+                        ? <button onClick={handleLogout}>
+                            Logout
+                          </button>
+                        : <button onClick={handleLogin}>
+                            Login
+                          </button>
+                    }
+
+                </div>
+            );
+        }
+
+
+        ReactDOM
+            .createRoot(document.getElementById("root"))
+            .render(<Status />);
+
+    </script>
+
+</body>
+</html>
