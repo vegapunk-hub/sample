@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <title>Student Dashboard</title>
+
+  <!-- React -->
+  <script src="https://unpkg.com/react@18/umd/react.development.js"></script>
+
+  <!-- ReactDOM -->
+  <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
+
+  <!-- Babel -->
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+</head>
+
+<body>
+
+  <div id="root"></div>
+
+  <script type="text/babel">
+
+    // COMPONENT 1
+    function StudentCard({ name, course, year }) {
+
+      // useState
+      const [likes, setLikes] = React.useState(0);
+      const [showDetails, setShowDetails] = React.useState(false);
+
+      return (
+        <div className="bg-white p-5 m-4 rounded-lg shadow">
+
+          <h2 className="text-2xl font-bold text-blue-600">
+            {name}
+          </h2>
+
+          <p>Course: {course}</p>
+          <p>Year: {year}</p>
+
+          <button
+            onClick={() => setLikes(likes + 1)}
+            className="mt-3 bg-blue-500 text-white px-4 py-2 rounded"
+          >
+            👍 Like {likes}
+          </button>
+
+          <button
+            onClick={() => setShowDetails(!showDetails)}
+            className="mt-3 ml-2 bg-green-500 text-white px-4 py-2 rounded"
+          >
+            {showDetails ? "Hide" : "Show"} Details
+          </button>
+
+          {showDetails && (
+            <p className="mt-3 text-gray-600">
+              This is a BCA student.
+            </p>
+          )}
+
+        </div>
+      );
+    }
+
+
+    // COMPONENT 2
+    function App() {
+
+      const [count, setCount] = React.useState(0);
+
+      return (
+        <div className="bg-gray-100 min-h-screen p-6">
+
+          <h1 className="text-3xl font-bold text-center text-purple-600">
+            🎓 Student Dashboard
+          </h1>
+
+          <p className="text-center mt-3">
+            Total Clicks: {count}
+          </p>
+
+          <div className="text-center">
+            <button
+              onClick={() => setCount(count + 1)}
+              className="mt-2 bg-purple-500 text-white px-4 py-2 rounded"
+            >
+              Click Me
+            </button>
+          </div>
+
+
+          {/* Reusing the Component */}
+
+          <StudentCard
+            name="Anbu"
+            course="BCA"
+            year="3rd Year"
+          />
+
+          <StudentCard
+            name="Gunaa"
+            course="BCA"
+            year="3rd Year"
+          />
+
+          <StudentCard
+            name="Senthil"
+            course="BCA"
+            year="3rd Year"
+          />
+
+        </div>
+      );
+    }
+
+
+    // DISPLAY APP
+    ReactDOM.createRoot(
+      document.getElementById("root")
+    ).render(<App />);
+
+  </script>
+
+</body>
+</html>
